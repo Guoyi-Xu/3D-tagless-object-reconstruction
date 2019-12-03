@@ -14,11 +14,13 @@ c = physconst('LightSpeed');
 % Threshold for standard deviation of phase.
 phStdTh = 15; % In degrees. A very high value means no rejection.
 % fprintf('Using phase standard deviation threshold %d\n', phStdTh);
-rssiStdTh = 0.7;
+rssiDiffTh = .5;
+RJT = 1;
 
 % Specify data directory and name.
 dirName = 'D:\commercial_RFID_imaging_apps\Vicon room results\20190524 (12by12 room, tag regular, ant ceiling, 4_80_6, systematic tests)\';
-fileName = 'Pragya_me_standing_x10y2_x10y6';
+fileName = 'Pragya_standing_x2y10';
+opts.calibType = 5;
 
 % Load the raw data.
 load([dirName, 'data_wo_',fileName,'_v1_to_v2_rm0.mat']); % Looking at 2 minute cases
@@ -58,16 +60,6 @@ for j = 1:RecvNum
                     PhaseCollectMean1(i, j, k) = NaN;
                     RSSICollectMean1(i, j, k) = NaN;
                     CompNumCollectMean1(i, j, k) = NaN;
-%                 elseif RSSICollectStd1(i, j, k) > rssiStdTh
-%                     % Then throw away the largest RSSI data of a channel if
-%                     % the RSSI standard deviation of this channel is too
-%                     % high.
-%                     phase_ttt(rssi_ttt == max(rssi_ttt)) = [];
-%                     rssi_ttt(rssi_ttt == max(rssi_ttt)) = [];
-%                     PhaseCollectMean1(i, j, k) = mean(phase_ttt);
-%                     RSSICollectMean1(i, j, k) = mean(rssi_ttt);
-%                     comp_temp = rssi_ttt.*cos(deg2rad(phase_ttt)) + sqrt(-1).*rssi_ttt.*sin(deg2rad(phase_ttt));
-%                     CompNumCollectMean1(i, j, k) = mean(comp_temp);
                 else
                     PhaseCollectMean1(i, j, k) = mean(phase_ttt);
                     RSSICollectMean1(i, j, k) = mean(rssi_ttt);
@@ -127,16 +119,6 @@ for j = 1:RecvNum
                     PhaseCollectMean2(i, j, k) = NaN;
                     RSSICollectMean2(i, j, k) = NaN;
                     CompNumCollectMean2(i, j, k) = NaN;
-%                 elseif RSSICollectStd2(i, j, k) > rssiStdTh
-%                     % Then throw away the largest RSSI data of a channel if
-%                     % the RSSI standard deviation of this channel is too
-%                     % high.
-%                     phase_ttt(rssi_ttt == max(rssi_ttt)) = [];
-%                     rssi_ttt(rssi_ttt == max(rssi_ttt)) = [];
-%                     PhaseCollectMean2(i, j, k) = mean(phase_ttt);
-%                     RSSICollectMean2(i, j, k) = mean(rssi_ttt);
-%                     comp_temp = rssi_ttt.*cos(deg2rad(phase_ttt)) + sqrt(-1).*rssi_ttt.*sin(deg2rad(phase_ttt));
-%                     CompNumCollectMean2(i, j, k) = mean(comp_temp);
                 else
                     PhaseCollectMean2(i, j, k) = mean(phase_ttt);
                     RSSICollectMean2(i, j, k) = mean(rssi_ttt);
@@ -157,6 +139,26 @@ for j = 1:RecvNum
     end
 end
 clear chindexlist tagindexlist antennalist rssiimpinjlist rssiimpinjlist_d phasedeglist
+
+
+% Reject the channels with blocked RSSI's.
+if RJT == 1
+    for n = 1:TagNum
+        for k = 1:RecvNum
+            for m = 1:FreqNum
+                if RSSICollectMean2(n, k, m)/RSSICollectMean1(n, k, m) < rssiDiffTh
+                    RSSICollectMean1(n, k, m) = NaN;
+                    PhaseCollectMean1(n, k, m) = NaN;
+                    CompNumCollectMean1(n, k, m) = NaN;
+                    RSSICollectMean2(n, k, m) = NaN;
+                    PhaseCollectMean2(n, k, m) = NaN;
+                    CompNumCollectMean2(n, k, m) = NaN;
+                end
+            end
+        end
+    end
+end
+
 
 G_wo_s = CompNumCollectMean1;
 G_w_s = CompNumCollectMean2;
@@ -189,7 +191,6 @@ r_z = bsxfun(@minus, tagPosition(:, 3), rxPosition(:, 3)');
 r = sqrt(r_x.^2 + r_y.^2 + r_z.^2);
 
 % Perform the calibration.
-opts.calibType = 5;
 G_calib = zeros(TagNum, RecvNum, FreqNum);
 switch(opts.calibType)
     case 1
@@ -296,7 +297,7 @@ switch(opts.calibType)
                 isLosBlocked = 1;
                 for m = 1:FreqNum
                     if G_w_abs(m)*G_wo_abs(m) > 0
-                        if G_w_abs(m)/G_wo_abs(m) < rssiStdTh
+                        if G_w_abs(m)/G_wo_abs(m) < rssiDiffTh
                             isLosBLocked = 1*isLosBlocked;
                         else
                             isLosBlocked = 0*isLosBlocked;
@@ -390,7 +391,7 @@ switch(opts.calibType)
                 isLosBlocked = 1;
                 for m = 1:FreqNum
                     if G_w_abs(m)*G_wo_abs(m) > 0
-                        if G_w_abs(m)/G_wo_abs(m) < rssiStdTh
+                        if G_w_abs(m)/G_wo_abs(m) < rssiDiffTh
                             isLosBLocked = 1*isLosBlocked;
                         else
                             isLosBlocked = 0*isLosBlocked;
@@ -433,7 +434,8 @@ switch(opts.calibType)
                     RelCompx = cos(RelPhs) + 1j*sin(RelPhs);
 %                     RelCompx = exp(1i*RelPhs);
                     RelRawData = G_wo_s(n, k, m)*G_wo_s(n, 1, m)';
-                    CableClutter(n, k, m) = RelCompx*RelRawData';
+%                     CableClutter(n, k, m) = RelCompx*RelRawData';
+                    CableClutter(n, k, m) = 1283578;
                     if abs(CableClutter(n, k, m)) > 0
                         CableClutter(n, k, m) = CableClutter(n, k, m)./abs(CableClutter(n, k, m));
                     end
@@ -444,7 +446,7 @@ switch(opts.calibType)
         % Calculate the phase offset introduced by each tag at each
         % frequency. Here we're calculating the tag loss averaging on all
         % the receiving antenna.
-%                 TagCal = ones(FreqNum, TagNum);
+%                 TagCal = ones(FreqNum, TagNum, RecvNum);
         TagCal = zeros(FreqNum, TagNum, RecvNum);
         for m = 1:FreqNum
             kn = 2*pi*freq(m)/c;
@@ -474,7 +476,7 @@ switch(opts.calibType)
                 isLosBlocked = 1;
                 for m = 1:FreqNum
                     if G_w_abs(m)*G_wo_abs(m) > 0
-                        if G_w_abs(m)/G_wo_abs(m) < rssiStdTh
+                        if G_w_abs(m)/G_wo_abs(m) < rssiDiffTh
                             isLosBLocked = 1*isLosBlocked;
                         else
                             isLosBlocked = 0*isLosBlocked;
@@ -486,7 +488,8 @@ switch(opts.calibType)
                     if G_w_abs(m)*G_wo_abs(m) > 0
                         if isLosBlocked == 0
                             G_calib(n, k, m) = G_w_s(n, k, m) - G_wo_s(n, k, m);
-                            fac = CableClutter(n, k, m)*TagCal(m, n, k);
+%                             fac = CableClutter(n, k, m)*TagCal(m, n, k);
+                            fac = exp(-1i*(2*pi*freq(m)/c)*norm(tagPosition(n, :) - rxPosition(k, :)))*(G_wo_s(n, k, m)'/abs(G_wo_s(n, k, m)));
                             G_calib(n, k, m) = G_calib(n, k, m)*fac;
                         else
                             countBlocked = countBlocked + 1;
@@ -517,6 +520,12 @@ switch(opts.calibType)
                     CalCompx = cos(CalPhs) + 1j*sin(CalPhs);
 %                     CalCompx = exp(1i*CalPhs);
                     NonIdealCal(n, k, m) = CalCompx*G_wo_s(n, k, m)';
+                    if abs(NonIdealCal(n, k, m)) > 0
+                        NonIdealCal(n, k, m) = NonIdealCal(n, k, m)/abs(NonIdealCal(n, k, m));
+                    end
+                    % We HAVE TO do normalization of the undesired part of
+                    % the link, the "NonIdealCal" variable. If you don't
+                    % normalize it, the results will be bad.
                 end
             end
         end
@@ -530,10 +539,11 @@ switch(opts.calibType)
             for k = 1:RecvNum
                 G_w_abs = abs(G_w_s(n, k, :));
                 G_wo_abs = abs(G_wo_s(n, k, :));
+%                 isLosBlocked = 0;
                 isLosBlocked = 1;
                 for m = 1:FreqNum
                     if G_w_abs(m)*G_wo_abs(m) > 0
-                        if G_w_abs(m)/G_wo_abs(m) < rssiStdTh
+                        if G_w_abs(m)/G_wo_abs(m) < rssiDiffTh
                             isLosBLocked = 1*isLosBlocked;
                         else
                             isLosBlocked = 0*isLosBlocked;
@@ -544,11 +554,29 @@ switch(opts.calibType)
                 for m = 1:FreqNum
                     if G_w_abs(m)*G_wo_abs(m) > 0
                         if isLosBlocked == 0
+                            % Equivalent implementation.
+%                             G_calib(n, k, m) = G_w_s(n, k, m) - G_wo_s(n, k, m);
+%                             G_calib(n, k, m) = G_calib(n, k, m)*NonIdealCal(n, k, m);
+
+                            % Equivalent implementation.
+                            G_w_s(n, k, m) = G_w_s(n, k, m)*NonIdealCal(n, k, m);
+                            G_wo_s(n, k, m) = G_wo_s(n, k, m)*NonIdealCal(n, k, m);
                             G_calib(n, k, m) = G_w_s(n, k, m) - G_wo_s(n, k, m);
-%                             if abs(G_calib(n, k, m)) > 0
-%                                 G_calib(n, k, m) = G_calib(n, k, m)/abs(G_calib(n, k, m));
-%                             end
-                            G_calib(n, k, m) = G_calib(n, k, m)*NonIdealCal(n, k, m);
+                            
+                            % Equivalent implementation. (But this
+                            % implementation is too complicated in
+                            % expression.)
+%                             G_w_s(n, k, m) = G_w_s(n, k, m)*(G_wo_s(n, k, m)'/abs(G_wo_s(n, k, m)))*exp(1i*(-(2*pi*freq(m)/c)*norm(tagPosition(n, :) - rxPosition(k, :))));
+%                             G_wo_s(n, k, m) = G_wo_s(n, k, m)*(G_wo_s(n, k, m)'/abs(G_wo_s(n, k, m)))*exp(1i*(-(2*pi*freq(m)/c)*norm(tagPosition(n, :) - rxPosition(k, :))));
+%                             G_wo_s(n, k, m) = (abs(G_wo_s(n, k, m))^2/abs(G_wo_s(n, k, m)))*exp(1i*(-(2*pi*freq(m)/c)*norm(tagPosition(n, :) - rxPosition(k, :))));
+%                             G_calib(n, k, m) = G_w_s(n, k, m) - G_wo_s(n, k, m);
+                            % This above implementation is equivalent to
+                            % the previous two because NonIdealCal(n, m, k)
+                            % = (G_wo_s(n, k, m)'/abs(G_wo_s(n, k, m)))*
+                            % exp(-1i*(2*pi*freq(m)/c)*norm(tagPosition
+                            % - rxPosition(k, :))). Therefore they are
+                            % exactly the same implementations.
+
                         else
                             countBlocked = countBlocked + 1;
                         end
@@ -557,6 +585,115 @@ switch(opts.calibType)
             end
         end
         fprintf('#LOS possibly blocked.. %d\n',countBlocked);
+        % Questions: The variable "NonIdealCal" represents everything else
+        % except the LoS propagation delay. 1) Why the propagation delay is
+        % the distance from tag to receiver, not twice the distance from
+        % tag to receiver? 2) Why doesn't it matter if we normalize
+        % "NonIdealCal" or not, but it does matter if we normalize "G_wo_s"
+        % or not?
+        
+        % Thoughts: We could first do background subtraction. Then we are
+        % theoretically left with only the signal reflected by the object,
+        % as well as RF cable loss, background clutter associated with the
+        % link of object reflection, and the tag circuitry loss (all
+        % complex numbers). There could be several ways to get rid of all
+        % of these undesired parts and make only the object reflection
+        % remain, including differential method, and non-differential
+        % methods. Let me think about this now.
+    case 6
+        % This is a different calibration from 2, 3, and 4. RF cable,
+        % clutter, and tag circuitry are lumped into one variable to
+        % represent the phase offset introduced by these sources. We expect
+        % that by directly calculating the RF cable and clutter loss part,
+        % instead of calculating the relative values (like in calibration
+        % 2, 3, or 4), we are able to improve the results more.
+%         scale = 1e-3;
+%         G_w_s = scale.*G_w_s;
+%         G_wo_s = scale.*G_wo_s;
+        
+        NonIdealCal = zeros(TagNum, RecvNum, FreqNum);
+        for m = 1:FreqNum
+            kn = 2*pi*freq(m)/c;
+            for k = 1:RecvNum
+                for n = 1:TagNum
+                    distTagRecv = norm(tagPosition(n, :) - rxPosition(k, :));
+                    CalPhs = -kn*distTagRecv;
+                    CalCompx = cos(CalPhs) + 1j*sin(CalPhs);
+%                     CalCompx = exp(1i*CalPhs);
+                    NonIdealCal(n, k, m) = CalCompx*G_wo_s(n, k, m)';
+                    if abs(NonIdealCal(n, k, m)) > 0
+                        NonIdealCal(n, k, m) = NonIdealCal(n, k, m)/abs(NonIdealCal(n, k, m));
+                    end
+                    % We HAVE TO do normalization of the undesired part of
+                    % the link, the "NonIdealCal" variable. If you don't
+                    % normalize it, the results will be bad.
+                end
+            end
+        end
+        
+        % Background subtraction. (We could lump this into the previous for
+        % loop, but for ease of understanding, we will separate the
+        % previous for loop, which is in charge of getting rid of the RF
+        % cable, clutter and tag circuitry loss, and this one.)
+        countBlocked = 0;
+        for n = 1:TagNum
+            for k = 1:RecvNum
+                G_w_abs = abs(G_w_s(n, k, :));
+                G_wo_abs = abs(G_wo_s(n, k, :));
+                isLosBlocked = 0;
+%                 isLosBlocked = 1;
+%                 for m = 1:FreqNum
+%                     if G_w_abs(m)*G_wo_abs(m) > 0
+%                         if G_w_abs(m)/G_wo_abs(m) < rssiDiffTh
+%                             isLosBLocked = 1*isLosBlocked;
+%                         else
+%                             isLosBlocked = 0*isLosBlocked;
+%                         end
+%                     end
+%                 end
+                
+                for m = 1:FreqNum
+                    if G_w_abs(m)*G_wo_abs(m) > 0
+                        if isLosBlocked == 0
+                            % Equivalent implementation.
+%                             G_calib(n, k, m) = G_w_s(n, k, m) - G_wo_s(n, k, m);
+%                             G_calib(n, k, m) = G_calib(n, k, m)*NonIdealCal(n, k, m);
+
+                            % Equivalent implementation.
+                            G_w_s(n, k, m) = G_w_s(n, k, m)*NonIdealCal(n, k, m);
+                            G_wo_s(n, k, m) = G_wo_s(n, k, m)*NonIdealCal(n, k, m);
+                            G_calib(n, k, m) = G_w_s(n, k, m) - G_wo_s(n, k, m);
+                            
+                            % Equivalent implementation. (But this
+                            % implementation is too complicated in
+                            % expression.)
+%                             G_w_s(n, k, m) = G_w_s(n, k, m)*(G_wo_s(n, k, m)'/abs(G_wo_s(n, k, m)))*exp(1i*(-(2*pi*freq(m)/c)*norm(tagPosition(n, :) - rxPosition(k, :))));
+%                             G_wo_s(n, k, m) = G_wo_s(n, k, m)*(G_wo_s(n, k, m)'/abs(G_wo_s(n, k, m)))*exp(1i*(-(2*pi*freq(m)/c)*norm(tagPosition(n, :) - rxPosition(k, :))));
+%                             G_wo_s(n, k, m) = (abs(G_wo_s(n, k, m))^2/abs(G_wo_s(n, k, m)))*exp(1i*(-(2*pi*freq(m)/c)*norm(tagPosition(n, :) - rxPosition(k, :))));
+%                             G_calib(n, k, m) = G_w_s(n, k, m) - G_wo_s(n, k, m);
+                            % This above implementation is equivalent to
+                            % the previous two because NonIdealCal(n, m, k)
+                            % = (G_wo_s(n, k, m)'/abs(G_wo_s(n, k, m)))*
+                            % exp(-1i*(2*pi*freq(m)/c)*norm(tagPosition
+                            % - rxPosition(k, :))). Therefore they are
+                            % exactly the same implementations.
+
+                        else
+                            countBlocked = countBlocked + 1;
+                        end
+                    end
+                end
+            end
+        end
+        fprintf('#LOS possibly blocked.. %d\n',countBlocked);
+    case 7
+        % We combine Calibration 2 with differential receiving, in hope for
+        % eliminating initial phase associated with the received data, with
+        % RF cable, clutter and tag circuitry loss subtracted.
+    case 8
+        % We combine Calibration 5 with differential receiving, in hope for
+        % eliminating initial phase associated with the received data, with
+        % RF cable, clutter and tag circuitry together subtracted.
     otherwise
         fprintf('Wrong calibration option selection, select a valid method. \n');
 end
@@ -564,8 +701,8 @@ b = G_calib(:);
 
 %% Reconstruction.
 % The voxel coordinates.
-x_v=0:0.06:3.6;
-y_v=0:0.06:3.6;
+x_v=0:0.12:3.6;
+y_v=0:0.12:3.6;
 z_v=0:0.3:2.4;
 
 NxVoxel = length(x_v);
@@ -669,9 +806,9 @@ ReconsDistNorm = permute(ReconsDistNorm, [2 1 3]);
 h = slice(X_V, Y_V, Z_V, ReconsDistNorm,x_v,y_v,z_v);
 % imgComplexAbs(imgComplexAbs == 0) = NaN;
 % h = slice(X_V, Y_V, Z_V, imgComplexAbs,x_v,y_v,z_v);
-xlabel('x (m)','FontSize',14);
-ylabel('y (m)','FontSize',14);
-zlabel('z (m)','FontSize',14);
+xlabel('x / m','FontSize',14);
+ylabel('y / m','FontSize',14);
+zlabel('z / m','FontSize',14);
 xlim([x_v(1), x_v(length(x_v))]);
 ylim([y_v(1), y_v(length(y_v))]);
 zlim([z_v(1), z_v(length(z_v))]);
@@ -684,6 +821,10 @@ a = alphamap('rampup',256);
 imgThresh = 200;
 a(1:imgThresh) = 0;
 alphamap(a);
+set(gca, 'fontweight', 'bold');
+
+hold on
+scatter3(2.4, 1.8, 1.2, 5, 'bo', 'LineWidth', 5);
 
 %{
 % Plot the tags and receiver antennas.
