@@ -7,11 +7,8 @@ The passive tags do not contain any battery, as they are able to harvest energy 
 The reader receives the tag backscattering signal and decodes tag ID, as well as other RF information from the tags. Most current RFID readers support received signal strength indicator (RSSI) and phase information, which are the two most important RF parameters for this project.
 
 
+This project aims to reconstruct the reflectivity image of the capture volume of interest, based on the received RF parameters from backscattering signal from RFID tags. Conventional matched filtering is used as the inverse solution for this project, with a novel calibration method to eliminate background clutter and proposed postprocessing techniques to cancel out noisy channels due to background dynamics and channels affected by line-of-sight (LoS) blockage by large target objects.
 
-
-
-
-This project aims to reconstruct the object from the signals received by RFID reader antennas, which are backscattered from RFID tags.
 Both the tags and receiver antennas are placed around the capture volume, which is around 3.6 m by 3.6 m by 3 m.
 
 The experiment is carried out as follows:
