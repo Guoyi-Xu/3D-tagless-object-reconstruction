@@ -14,5 +14,5 @@ The experiment is carried out as follows:
 2. We then run the hardware system to collect the data when the object(s) is(are) in the capture volume.
 3. Then, data processing is carried out, where we reconstruct the reflectivity image in the capture volume using MF.
 
-The first two steps were carried out beforehand, with collected data stored in the folder "DataCollected" (committed to this repository), and the MATLAB scripts and functions committed into this repository achieve the third step above.
+The first two steps were carried out beforehand, with collected data stored in the folder "CollectedData", and the MATLAB scripts and functions committed into this repository achieve the third step above.
 If you download the repository as a package, you would like to run "ReconstructScript.m", and you will get the reconstructed images of the object at specified locations. You might need to change lines 21 and 22 of "ReconstructScript.m" according to the directory of your computer after downloading the repository.
