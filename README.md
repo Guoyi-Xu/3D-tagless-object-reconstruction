@@ -7,14 +7,12 @@ The passive tags do not contain any battery, as they are able to harvest energy 
 The reader receives the tag backscattering signal and decodes tag ID, as well as other RF information from the tags. Most current RFID readers support received signal strength indicator (RSSI) and phase information, which are the two most important RF parameters for this project.
 
 
-This project aims to reconstruct the reflectivity image of the capture volume of interest, based on the received RF parameters from backscattering signal from RFID tags. Conventional matched filtering is used as the inverse solution for this project, with a novel calibration method to eliminate background clutter and proposed postprocessing techniques to cancel out noisy channels due to background dynamics and channels affected by line-of-sight (LoS) blockage by large target objects.
-
-Both the tags and receiver antennas are placed around the capture volume, which is around 3.6 m by 3.6 m by 3 m.
+This project aims to reconstruct the reflectivity image of the capture volume of interest, based on the received RF parameters from backscattering signal from RFID tags. Conventional matched filtering (MF) is used as the inverse solution for this project, with a novel calibration method to eliminate background clutter and proposed postprocessing techniques to cancel out noisy channels due to background dynamics and channels affected by line-of-sight (LoS) blockage by large target objects.
 
 The experiment is carried out as follows:
 1. We first run the hardware system to collect the data when no object is in the capture volume.
 2. We then run the hardware system to collect the data when the object(s) is(are) in the capture volume.
-3. Then, post-processing of the collected data is carried out, in which we reconstruct the object location and size using our algorithm.
+3. Then, data processing is carried out, where we reconstruct the reflectivity image in the capture volume using MF.
 
 The first two steps were carried out beforehand, with collected data stored in the folder "DataCollected" (committed to this repository), and the MATLAB scripts and functions committed into this repository achieve the third step above.
 If you download the repository as a package, you would like to run "ReconstructScript.m", and you will get the reconstructed images of the object at specified locations. You might need to change lines 21 and 22 of "ReconstructScript.m" according to the directory of your computer after downloading the repository.
